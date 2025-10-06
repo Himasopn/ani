@@ -3,235 +3,238 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Particle Circle — MEMBERS</title>
+<title>Particle Circle — Interactive</title>
 <style>
-  /* ---------- basic reset ---------- */
+  /* ============================
+     Reset & base
+     ============================ */
   *{box-sizing:border-box;margin:0;padding:0}
-  html,body{height:100%;width:100%;background:#000;font-family:Inter,system-ui,Arial,sans-serif;color:#fff;overflow:hidden}
+  html,body{height:100%;width:100%;background:#000;overflow:hidden;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;color:#fff}
+  button{font-family:inherit}
 
-  /* ---------- app layout ---------- */
+  /* ============================
+     App layout
+     ============================ */
   .app {
     position:relative;
-    width:100vw; height:100vh;
-    touch-action:none; /* better touch control */
+    width:100vw;height:100vh;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+    overflow: hidden;
   }
 
-  canvas{
-    position:absolute; left:0; top:0;
-    width:100%; height:100%;
-    display:block;
+  /* Canvas full-screen */
+  canvas {
+    position:absolute;left:0;top:0;width:100%;height:100%;display:block;
   }
 
-  /* ---------- top-right flower menu ---------- */
+  /* Blur target wrapper (so overlay blurs background) */
+  .blur-target { position: absolute; inset:0; z-index: 1; }
+
+  /* ============================
+     Top-right flower menu (presets)
+     ============================ */
   .bg-toggle {
-    position: absolute;
-    top: 18px;
-    right: 18px;
-    z-index: 60;
-    display:flex;
-    align-items:center;
-    gap:8px;
+    position:absolute; top:18px; right:18px; z-index:80; display:flex; align-items:center; gap:10px;
   }
 
   .flower-btn {
-    width:46px; height:46px;
-    border-radius:12px;
-    border:none;
-    background: rgba(255,255,255,0.06);
-    color:white;
-    font-size:20px;
-    display:flex; align-items:center; justify-content:center;
-    cursor:pointer;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.45);
-    transition:transform .18s ease, background .18s ease;
+    width:46px; height:46px; border-radius:12px; border:none; background: rgba(255,255,255,0.06);
+    color:white; font-size:20px; display:flex; align-items:center; justify-content:center;
+    cursor:pointer; box-shadow: 0 6px 20px rgba(0,0,0,0.45); transition:transform .12s, background .12s;
   }
   .flower-btn:active{ transform: scale(.96) }
   .flower-btn:hover{ background: rgba(255,255,255,0.09) }
 
   .bg-menu {
-    position:absolute;
-    top:64px;
-    right:0;
-    min-width:220px;
-    background: rgba(10,10,10,0.7);
-    border-radius:12px;
-    padding:10px;
-    display:grid;
-    gap:8px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
-    transform-origin: top right;
-    opacity:0; pointer-events:none;
-    transform: translateY(-6px) scale(.98);
-    transition: opacity .18s ease, transform .18s ease;
-    backdrop-filter: blur(6px);
+    position:absolute; top:64px; right:0; min-width:240px; background: rgba(8,8,8,0.72);
+    border-radius:12px; padding:10px; display:grid; gap:8px; box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    transform-origin: top right; opacity:0; pointer-events:none; transform: translateY(-6px) scale(.98);
+    transition: opacity .16s ease, transform .16s ease; backdrop-filter: blur(6px);
   }
   .bg-menu.open { opacity:1; pointer-events:auto; transform: translateY(0) scale(1); }
 
-  .bg-option {
-    display:flex; align-items:center; gap:10px;
-    padding:10px; border-radius:10px; cursor:pointer;
-    background: rgba(255,255,255,0.02);
-    transition: background .12s ease, transform .12s ease;
-    user-select:none;
-  }
-  .bg-option:hover { background: rgba(255,255,255,0.04); transform: translateY(-2px) }
-  .bg-option .dot {
-    width:36px; height:36px; border-radius:8px; flex-shrink:0;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.55);
-  }
-  .bg-option .label { font-size:14px; color:#fff; opacity:.95; }
+  .bg-option { display:flex; align-items:center; gap:10px; padding:10px; border-radius:10px; cursor:pointer; background: rgba(255,255,255,0.02); }
+  .bg-option:hover{ background: rgba(255,255,255,0.04); transform: translateY(-2px); }
+  .bg-option .dot { width:36px;height:36px;border-radius:8px; flex-shrink:0; box-shadow: 0 6px 18px rgba(0,0,0,0.55); }
+  .bg-option .label { font-size:14px; color:#fff; opacity:.95 }
 
-  /* ---------- overlay / blur / loading ---------- */
-  .blur-target.blur { filter: blur(6px) saturate(.92); transition: filter .28s ease; pointer-events:none; }
+  /* ============================
+     Hint
+     ============================ */
+  .hint {
+    position:absolute; left:18px; bottom:18px; z-index:50;
+    background: rgba(0,0,0,0.35); padding:8px 12px; border-radius:999px; font-size:13px; color:#fff; opacity:.9;
+  }
+
+  /* ============================
+     Overlay / loading / buttons
+     ============================ */
   #overlay {
-    position:absolute; inset:0; z-index:70;
-    display:flex; align-items:center; justify-content:center;
-    pointer-events:none; opacity:0;
-    transition: opacity .22s ease;
+    position:absolute; inset:0; z-index:200; display:flex; align-items:center; justify-content:center;
+    pointer-events:none; opacity:0; transition: opacity .24s ease;
   }
   #overlay.active { opacity:1; pointer-events:auto; }
 
-  .overlay-card {
-    background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
-    padding:22px 20px;
-    border-radius:14px;
+  .overlay-inner {
+    width: min(560px, 92vw); max-width: 92vw;
     display:flex; flex-direction:column; align-items:center; gap:14px;
-    backdrop-filter: blur(8px) saturate(.9);
-    box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+    padding: 22px; border-radius:14px; background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+    backdrop-filter: blur(8px); box-shadow: 0 20px 60px rgba(0,0,0,0.7);
   }
 
   .spinner {
-    width:64px; height:64px; border-radius:50%;
-    border:6px solid rgba(255,255,255,0.08);
+    width:72px; height:72px; border-radius:50%;
+    border:7px solid rgba(255,255,255,0.08);
     border-top-color: #ff6b9d;
     animation: spin 1s linear infinite;
   }
-  @keyframes spin { to { transform: rotate(360deg) } }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
   .loading-text { font-size:15px; opacity:.95; }
-  .members-btn {
-    display:inline-block; padding:12px 26px; border-radius:999px;
-    border:none; background:linear-gradient(90deg,#ff6b9d,#ff9fbf);
-    color:#111; font-weight:800; letter-spacing:.6px; cursor:pointer;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
-    text-transform:uppercase; font-size:13px;
+
+  .button-row {
+    display:flex; gap:14px; align-items:center; justify-content:center; flex-wrap:wrap;
   }
 
-  /* responsive smaller sizes */
-  @media (max-width:520px){
-    .flower-btn { width:44px; height:44px; font-size:18px }
-    .overlay-card { padding:18px }
-    .spinner { width:52px; height:52px; border-width:5px }
+  .btn-main {
+    padding:14px 28px; border-radius:999px; border:none; cursor:pointer;
+    font-weight:800; text-transform:uppercase; letter-spacing:0.6px; font-size:13px;
+    color:#111; background: linear-gradient(90deg,#ff6b9d,#ff9fbf); box-shadow: 0 8px 30px rgba(0,0,0,0.45);
   }
 
-  /* small hint label */
-  .hint {
-    position:absolute; left:18px; bottom:18px; z-index:55;
-    background: rgba(0,0,0,0.35); padding:8px 12px; border-radius:999px;
-    font-size:13px; color:#fff; opacity:.9;
+  .btn-alt {
+    padding:14px 28px; border-radius:999px; border:none; cursor:pointer;
+    font-weight:700; font-size:13px; color:#fff; background: linear-gradient(90deg,#09aaff,#0072ff); box-shadow: 0 8px 30px rgba(0,0,0,0.45);
   }
+
+  .btn-back {
+    margin-top:8px; padding:8px 18px; font-size:12px; border-radius:8px; background: rgba(255,255,255,0.08);
+    color:#fff; border:none; cursor:pointer;
+  }
+
+  /* blur CSS class applied to blur-target */
+  .blur-target.blur { filter: blur(6px) saturate(.92); transition: filter .28s ease; pointer-events:none; }
+
+  @media (max-width:520px) {
+    .overlay-inner { padding: 16px }
+    .spinner { width:56px; height:56px; border-width:6px }
+  }
+
+  /* ============================
+     background presets (kept minimal for perf)
+     ============================ */
+  body.preset-0 { background: #000; }
+  /* other presets handled in canvas draw code or body classes if needed */
 </style>
 </head>
-<body>
-<div class="app" id="app">
-  <!-- canvas -->
-  <canvas id="canvas"></canvas>
+<body class="preset-0">
+  <div class="app" id="app">
 
-  <!-- top-right flower & menu -->
-  <div class="bg-toggle" id="bgToggle">
-    <button class="flower-btn" id="flowerBtn" title="Change background">🌸</button>
-    <div class="bg-menu" id="bgMenu" aria-hidden="true">
-      <!-- options appended by JS for clarity -->
+    <!-- blur-target holds canvas and visual content that gets blurred -->
+    <div class="blur-target" id="blurTarget">
+      <canvas id="canvas"></canvas>
     </div>
-  </div>
 
-  <!-- hint -->
-  <div class="hint">Triple-tap center to open</div>
-
-  <!-- overlay: blur + loading + members -->
-  <div id="overlay" aria-hidden="true">
-    <div class="overlay-card" role="dialog" aria-modal="true" aria-label="Loading and members">
-      <div id="spinner" class="spinner" aria-hidden="false"></div>
-      <div id="loadingText" class="loading-text">Loading…</div>
-      <button id="membersBtn" class="members-btn" style="display:none">MEMBERS</button>
+    <!-- Top right flower menu -->
+    <div class="bg-toggle" id="bgToggle">
+      <button id="flowerBtn" class="flower-btn" aria-expanded="false" title="Background presets">🌸</button>
+      <div id="bgMenu" class="bg-menu" aria-hidden="true"></div>
     </div>
+
+    <div class="hint">Triple-tap center to open</div>
+
+    <!-- Overlay: spinner + buttons -->
+    <div id="overlay" aria-hidden="true">
+      <div class="overlay-inner" role="dialog" aria-modal="true" aria-label="Loading and actions">
+        <div id="spinner" class="spinner" aria-hidden="false"></div>
+        <div id="loadingText" class="loading-text">Loading…</div>
+
+        <div id="buttonArea" style="display:none; width:100%; align-items:center; justify-content:center; flex-direction:column;">
+          <div class="button-row" style="margin-bottom:8px;">
+            <button id="membersBtn" class="btn-main" type="button">MEMBERS</button>
+            <button id="projectBtn" class="btn-alt" type="button">PROJECT</button>
+          </div>
+          <button id="backBtn" class="btn-back" type="button">Back</button>
+        </div>
+      </div>
+    </div>
+
   </div>
-</div>
 
 <script>
-/* ========== MAIN JS ==========
+/* ===============================================
+   Full interactive particle-circle system
+   + triple-tap overlay with MEMBERS / PROJECT / BACK
+   + top-right flower preset menu (kept same)
+   =============================================== */
 
-  - Preserves original particle-circle behavior (rings -> rotate)
-  - Mouse/touch repulsion preserved
-  - Triple-tap center triggers overlay (loading spinner 2-4s), then MEMBERS button
-  - Flower button toggles background presets (6)
-  - Mobile-friendly touch handlers
-*/
-
-/* --------- Canvas & resize --------- */
+/* ---------------------------
+   Canvas setup + DPR handling
+   --------------------------- */
 const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d', { alpha: false }); // false for performance
+const ctx = canvas.getContext('2d');
 let DPR = Math.max(1, window.devicePixelRatio || 1);
-let W = canvas.width = Math.floor(window.innerWidth * DPR);
-let H = canvas.height = Math.floor(window.innerHeight * DPR);
-canvas.style.width = window.innerWidth + 'px';
-canvas.style.height = window.innerHeight + 'px';
-ctx.scale(DPR, DPR);
 
-function resize() {
+function setSize() {
   DPR = Math.max(1, window.devicePixelRatio || 1);
-  W = canvas.width = Math.floor(window.innerWidth * DPR);
-  H = canvas.height = Math.floor(window.innerHeight * DPR);
+  canvas.width = Math.floor(window.innerWidth * DPR);
+  canvas.height = Math.floor(window.innerHeight * DPR);
   canvas.style.width = window.innerWidth + 'px';
   canvas.style.height = window.innerHeight + 'px';
-  ctx.setTransform(1,0,0,1,0,0);
-  ctx.scale(DPR, DPR);
-  rebuildParticles();
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 }
-window.addEventListener('resize', resize);
+setSize();
+window.addEventListener('resize', () => { setSize(); rebuildParticles(); updateCenterForParticles(); });
 
-/* --------- Particle system (rings, many particles) --------- */
+/* ---------------------------
+   Particle system parameters
+   --------------------------- */
 let particles = [];
 let angle = 0;
 let mouseX = -9999, mouseY = -9999;
-let isCircleMode = true;
 
-/* parameters */
 const NUM_RINGS = 50;
-const MIN_PARTICLE_SEP = 4; // spacing approx
-const MAX_PARTICLES_LIMIT = 7000; // safety cap
+const MIN_PARTICLE_SEP = 4; // spacing approx in px
+const MAX_PARTICLES_LIMIT = 8000;
 let totalParticlesCount = 0;
 
+/* Return speed doubled as requested */
+const RETURN_SPEED = 0.03; // doubled from ~0.015 to 0.03
+
+/* ---------------------------
+   Build particles in rings (even spacing)
+   --------------------------- */
 function rebuildParticles() {
   particles = [];
-  const cw = window.innerWidth;
-  const ch = window.innerHeight;
-  const centerX = cw/2;
-  const centerY = ch/2;
-  const maxRadius = Math.min(cw, ch) * 0.28;
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const centerX = w / 2;
+  const centerY = h / 2;
+  const maxRadius = Math.min(w, h) * 0.28;
 
   let total = 0;
   const perRing = [];
-  for (let r=0; r<NUM_RINGS; r++){
-    const radius = ((r+1)/NUM_RINGS) * maxRadius;
-    const circ = 2 * Math.PI * radius;
-    const count = Math.max(Math.floor(circ / MIN_PARTICLE_SEP), 8);
+  for (let r = 0; r < NUM_RINGS; r++) {
+    const radius = ((r + 1) / NUM_RINGS) * maxRadius;
+    const circumference = 2 * Math.PI * radius;
+    const count = Math.max(Math.floor(circumference / MIN_PARTICLE_SEP), 8);
     perRing.push(count);
     total += count;
     if (total > MAX_PARTICLES_LIMIT) break;
   }
 
-  // create particles
-  for (let r=0; r<perRing.length; r++){
-    const radius = ((r+1)/NUM_RINGS) * maxRadius;
+  for (let r = 0; r < perRing.length; r++) {
+    const radius = ((r + 1) / NUM_RINGS) * maxRadius;
     const count = perRing[r];
-    for (let i=0; i<count; i++){
+    for (let i = 0; i < count; i++) {
       const a = (i / count) * Math.PI * 2;
       const x = centerX + Math.cos(a) * radius;
       const y = centerY + Math.sin(a) * radius;
       const p = {
         x, y,
-        size: Math.random()*0.9 + 0.35,
+        size: Math.random() * 0.9 + 0.35,
         color: Math.random() > 0.86 ? '#ff6b9d' : '#ffc0cb',
         radius,
         angleOffset: a,
@@ -241,204 +244,43 @@ function rebuildParticles() {
     }
   }
   totalParticlesCount = particles.length;
-  // console.log('particles', totalParticlesCount);
+  // console.log('Particles:', totalParticlesCount);
 }
 rebuildParticles();
 
-/* --------- Particle update/draw (with repulsion) --------- */
-function updateAndDrawParticles() {
-  const cw = window.innerWidth;
-  const ch = window.innerHeight;
-  const maxDist = 220;
-  const returnSpeed = 0.015; // smooth return
-  for (let i=0;i<particles.length;i++){
-    const p = particles[i];
-    // target circular path
-    const tx = p.centerX + Math.cos(angle + p.angleOffset) * p.radius;
-    const ty = p.centerY + Math.sin(angle + p.angleOffset) * p.radius;
-
-    // mouse repulsion
-    const dx = mouseX - p.x;
-    const dy = mouseY - p.y;
-    const dist = Math.sqrt(dx*dx + dy*dy);
-    if (dist < maxDist && dist > 0) {
-      const force = (maxDist - dist)/maxDist;
-      const repelX = (p.x - mouseX) / dist;
-      const repelY = (p.y - mouseY) / dist;
-      p.x += repelX * force * 28;
-      p.y += repelY * force * 28;
-    }
-
-    // smooth return
-    p.x += (tx - p.x) * returnSpeed;
-    p.y += (ty - p.y) * returnSpeed;
-
-    // draw
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
-    ctx.fillStyle = p.color;
-    ctx.fill();
-  }
-}
-
-/* --------- Animation loop --------- */
-let rafId = null;
-let lastTs = performance.now();
-
-function loop(ts){
-  const cw = window.innerWidth, ch = window.innerHeight;
-  ctx.clearRect(0,0,cw,ch);
-
-  // draw background (handled by chosen preset function)
-  drawBackground();
-
-  // update rotation
-  angle += 0.0055;
-
-  // draw particles
-  updateAndDrawParticles();
-
-  rafId = requestAnimationFrame(loop);
-}
-rafId = requestAnimationFrame(loop);
-
-/* --------- Interaction: mouse/touch for repulsion --------- */
-canvas.addEventListener('mousemove', (e) => {
-  mouseX = e.clientX;
-  mouseY = e.clientY;
-});
-canvas.addEventListener('mouseleave', () => {
-  mouseX = -9999; mouseY = -9999;
-});
-canvas.addEventListener('touchstart', (e) => {
-  if (e.touches && e.touches[0]) {
-    mouseX = e.touches[0].clientX;
-    mouseY = e.touches[0].clientY;
-  }
-}, { passive: true });
-canvas.addEventListener('touchmove', (e) => {
-  if (e.touches && e.touches[0]) {
-    mouseX = e.touches[0].clientX;
-    mouseY = e.touches[0].clientY;
-  }
-}, { passive: true });
-canvas.addEventListener('touchend', (e) => {
-  mouseX = -9999; mouseY = -9999;
-}, { passive: true });
-
-/* --------- preserve center coordinates on resize for particles --------- */
-window.addEventListener('resize', () => {
-  // Recalculate each particle center positions
-  const cx = window.innerWidth/2, cy = window.innerHeight/2;
+/* update particle center positions after resize */
+function updateCenterForParticles() {
+  const cx = window.innerWidth / 2;
+  const cy = window.innerHeight / 2;
   particles.forEach(p => { p.centerX = cx; p.centerY = cy; });
-});
-
-/* ======= TRIPLE-TAP CENTER DETECTION (works on mobile & desktop) ======= */
-const overlay = document.getElementById('overlay');
-const spinner = document.getElementById('spinner');
-const loadingText = document.getElementById('loadingText');
-const membersBtn = document.getElementById('membersBtn');
-const blurTargetEl = document.querySelector('#app'); // blur whole app content via CSS class
-
-let tapTimes = [];
-const TAP_MAX_INTERVAL = 600; // ms
-const CENTER_RADIUS = Math.min(window.innerWidth, window.innerHeight) * 0.18; // adaptive
-
-function isCenterPoint(x,y){
-  const rect = canvas.getBoundingClientRect();
-  const cx = rect.left + rect.width/2;
-  const cy = rect.top + rect.height/2;
-  const dx = x - cx, dy = y - cy;
-  return Math.hypot(dx,dy) <= CENTER_RADIUS;
 }
 
-function registerTapAt(clientX, clientY){
-  const now = Date.now();
-  if (!isCenterPoint(clientX, clientY)) {
-    tapTimes = []; // reset if tapping elsewhere
-    return;
-  }
-  tapTimes.push(now);
-  // keep only those within TAP_MAX_INTERVAL window
-  tapTimes = tapTimes.filter(t => now - t <= TAP_MAX_INTERVAL);
-  if (tapTimes.length >= 3) {
-    tapTimes = [];
-    triggerOverlaySequence();
-  }
-}
+/* ---------------------------
+   Background & preset drawing
+   (we preserve the 6 preset logic from earlier)
+   --------------------------- */
+const presets = (function(){
+  // Reuse a set of 6 background drawers, lightweight and smooth
+  // Each item: { id, label, dot, draw }
+  const presetsArr = [];
 
-/* attach handlers for click and touch */
-canvas.addEventListener('click', (e) => {
-  registerTapAt(e.clientX, e.clientY);
-});
-canvas.addEventListener('touchend', (e) => {
-  const t = e.changedTouches && e.changedTouches[0];
-  if (t) registerTapAt(t.clientX, t.clientY);
-}, { passive: true });
-
-/* overlay sequence: show blur + spinner -> after random 2-4s show MEMBERS */
-function triggerOverlaySequence() {
-  // show overlay & blur
-  overlay.classList.add('active');
-  blurTargetEl.classList.add('blur');
-
-  spinner.style.display = '';
-  loadingText.style.display = '';
-  loadingText.textContent = 'Loading…';
-  membersBtn.style.display = 'none';
-
-  overlay.setAttribute('aria-hidden','false');
-
-  // random between 2000 and 4000
-  const dur = 2000 + Math.floor(Math.random() * 2001);
-  setTimeout(() => {
-    spinner.style.display = 'none';
-    loadingText.style.display = 'none';
-    membersBtn.style.display = 'inline-block';
-    membersBtn.focus();
-  }, dur);
-}
-
-/* members button click: open x.com in new tab and remove overlay/blur */
-membersBtn.addEventListener('click', () => {
-  overlay.classList.remove('active'); overlay.setAttribute('aria-hidden','true');
-  blurTargetEl.classList.remove('blur');
-  // open in new tab via user click (allowed)
-  window.open('https://x.com', '_blank', 'noopener,noreferrer');
-});
-
-/* allow escape to dismiss overlay (removes blur) */
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    overlay.classList.remove('active'); overlay.setAttribute('aria-hidden','true');
-    blurTargetEl.classList.remove('blur');
-  }
-});
-
-/* --------- BACKGROUND PRESETS (6 professional styles) --------- */
-/*
-  Each preset has:
-    - draw: function to render background
-    - description: label
-    - sample color/dot for menu
-*/
-const presets = [
-  {
-    id: 'black',
+  // 0 - Classic Black (simple)
+  presetsArr.push({
+    id: 'classic-black',
     label: 'Classic Black',
-    dot: '#0b0b0b',
-    draw: function(){
-      // simple solid black (do nothing; canvas cleared already)
-      // We keep canvas background as black by clearing above
+    dot: '#000000',
+    draw: function() {
       ctx.fillStyle = '#000';
       ctx.fillRect(0,0,window.innerWidth, window.innerHeight);
     }
-  },
-  {
+  });
+
+  // 1 - Deep Radial Gradient
+  presetsArr.push({
     id: 'deep-gradient',
     label: 'Deep Radial Gradient',
-    dot: 'linear-gradient(45deg,#041426,#00121f)',
-    draw: function(){
+    dot: '#041926',
+    draw: function() {
       const w = window.innerWidth, h = window.innerHeight;
       const g = ctx.createRadialGradient(w*0.5,h*0.45,40,w*0.5,h*0.45, Math.max(w,h));
       g.addColorStop(0,'#071926');
@@ -447,15 +289,15 @@ const presets = [
       ctx.fillStyle = g;
       ctx.fillRect(0,0,w,h);
     }
-  },
-  {
+  });
+
+  // 2 - Soft Noise + Vignette
+  presetsArr.push({
     id: 'soft-noise',
     label: 'Soft Noise + Vignette',
     dot: '#0b1b2b',
-    // procedural subtle noise via alpha rectangles
-    draw: function(){
+    draw: function() {
       const w = window.innerWidth, h = window.innerHeight;
-      // base gradient
       const g = ctx.createLinearGradient(0,0,w,h);
       g.addColorStop(0,'#041120');
       g.addColorStop(1,'#001019');
@@ -469,10 +311,9 @@ const presets = [
       ctx.fillStyle = vg;
       ctx.fillRect(0,0,w,h);
 
-      // subtle animated dots (we'll reuse particles, but add a soft overlay)
-      // create low-alpha noise pattern (static-ish)
-      ctx.globalAlpha = 0.04;
-      for (let i=0;i<120;i++){
+      // subtle dynamic noise points (low alpha)
+      ctx.globalAlpha = 0.035;
+      for (let i=0;i<90;i++){
         const x = Math.random()*w;
         const y = Math.random()*h;
         const r = Math.random()*1.6;
@@ -483,20 +324,20 @@ const presets = [
       }
       ctx.globalAlpha = 1;
     }
-  },
-  {
+  });
+
+  // 3 - Starfield
+  presetsArr.push({
     id: 'starfield',
     label: 'Subtle Starfield',
     dot: '#001628',
-    // draws a moving star field on background (uses time)
     draw: (function(){
-      // create star cache
       const stars = [];
       const cacheSize = 220;
       let inited = false;
       return function(){
         const w = window.innerWidth, h = window.innerHeight;
-        if (!inited) {
+        if (!inited){
           stars.length = 0;
           for (let i=0;i<cacheSize;i++){
             stars.push({
@@ -510,31 +351,30 @@ const presets = [
           }
           inited = true;
         }
-        // dark gradient base
+        // base
         const g = ctx.createLinearGradient(0,0,w,h);
         g.addColorStop(0,'#000814');
         g.addColorStop(1,'#00020a');
         ctx.fillStyle = g;
         ctx.fillRect(0,0,w,h);
 
-        // update/draw stars
-        ctx.globalAlpha = 1;
         for (let i=0;i<stars.length;i++){
           const s = stars[i];
-          s.x += s.vx;
-          s.y += s.vy;
+          s.x += s.vx; s.y += s.vy;
           if (s.y < -10) { s.x = Math.random()*w; s.y = h + 10; }
           if (s.x < -10) s.x = w + 10;
-          const twinkle = 0.6 + Math.sin((Date.now()*0.002) + i)*0.4;
+          const tw = 0.6 + Math.sin((Date.now()*0.002) + i)*0.4;
           ctx.beginPath();
-          ctx.fillStyle = `rgba(255,255,255,${s.s * twinkle})`;
+          ctx.fillStyle = `rgba(255,255,255,${s.s * tw})`;
           ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
           ctx.fill();
         }
-      }
+      };
     })()
-  },
-  {
+  });
+
+  // 4 - Soft Pastel Gradient
+  presetsArr.push({
     id: 'soft-pastel',
     label: 'Soft Pastel Gradient',
     dot: '#ffd1e8',
@@ -547,7 +387,6 @@ const presets = [
       ctx.fillStyle = g;
       ctx.fillRect(0,0,w,h);
 
-      // subtle moving pastel overlay
       const grad = ctx.createLinearGradient(0,0,w,0);
       grad.addColorStop(0,'rgba(255,120,180,0.06)');
       grad.addColorStop(0.5,'rgba(120,200,255,0.06)');
@@ -555,18 +394,19 @@ const presets = [
       ctx.fillStyle = grad;
       ctx.fillRect(0,0,w,h);
     }
-  },
-  {
+  });
+
+  // 5 - Glassy blur lights
+  presetsArr.push({
     id: 'glassy',
     label: 'Glassy Blur Lights',
     dot: '#072b3a',
     draw: (function(){
-      // create few blurred circles that slowly move
       const blobs = [];
       let ready = false;
       return function(){
         const w = window.innerWidth, h = window.innerHeight;
-        if (!ready) {
+        if (!ready){
           blobs.length = 0;
           const n = 6;
           for (let i=0;i<n;i++){
@@ -574,18 +414,16 @@ const presets = [
               x: Math.random()*w,
               y: Math.random()*h,
               r: Math.max(w,h)*0.2 * (0.6 + Math.random()*0.6),
-              vx: (Math.random()-0.5)*0.2,
-              vy: (Math.random()-0.5)*0.2,
-              c: `hsla(${Math.floor(Math.random()*360)},70%,60%,0.14)`
+              vx: (Math.random()-0.5)*0.24,
+              vy: (Math.random()-0.5)*0.24,
+              c: `hsla(${Math.floor(Math.random()*360)},70%,60%,0.12)`
             });
           }
           ready = true;
         }
-        // dark base
         ctx.fillStyle = '#02060a';
         ctx.fillRect(0,0,window.innerWidth, window.innerHeight);
 
-        // draw blobs
         for (let b of blobs){
           b.x += b.vx; b.y += b.vy;
           if (b.x < -b.r) b.x = window.innerWidth + b.r;
@@ -593,7 +431,6 @@ const presets = [
           if (b.y < -b.r) b.y = window.innerHeight + b.r;
           if (b.y > window.innerHeight + b.r) b.y = -b.r;
 
-          // soft radial
           const rg = ctx.createRadialGradient(b.x, b.y, b.r*0.1, b.x, b.y, b.r);
           rg.addColorStop(0, b.c);
           rg.addColorStop(1, 'rgba(0,0,0,0)');
@@ -606,41 +443,242 @@ const presets = [
         }
       };
     })()
-  }
-];
+  });
 
-// current preset index
-let presetIndex = 0; // default black (first)
-function drawBackground(){
-  // call current preset draw
-  if (presets[presetIndex] && typeof presets[presetIndex].draw === 'function') {
-    presets[presetIndex].draw();
+  return presetsArr;
+})();
+
+/* current preset index */
+let presetIndex = 0;
+function drawBackground() {
+  const preset = presets[presetIndex];
+  if (preset && preset.draw) {
+    preset.draw();
   } else {
-    ctx.fillStyle = '#000'; ctx.fillRect(0,0,window.innerWidth, window.innerHeight);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0,0,window.innerWidth,window.innerHeight);
   }
 }
 
-/* --------- Build background menu UI --------- */
+/* ---------------------------
+   Particle update & draw
+   --------------------------- */
+function updateAndDrawParticles() {
+  const cw = window.innerWidth;
+  const ch = window.innerHeight;
+  const maxDist = 220;
+
+  for (let i = 0; i < particles.length; i++) {
+    const p = particles[i];
+
+    // target circular path (rotating)
+    const tx = p.centerX + Math.cos(angle + p.angleOffset) * p.radius;
+    const ty = p.centerY + Math.sin(angle + p.angleOffset) * p.radius;
+
+    // repulsion from pointer
+    const dx = mouseX - p.x;
+    const dy = mouseY - p.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+
+    if (dist < maxDist && dist > 0) {
+      const force = (maxDist - dist) / maxDist;
+      const repelX = (p.x - mouseX) / dist;
+      const repelY = (p.y - mouseY) / dist;
+      p.x += repelX * force * 28;
+      p.y += repelY * force * 28;
+    }
+
+    // smooth return to circular path — doubled as requested
+    p.x += (tx - p.x) * RETURN_SPEED;
+    p.y += (ty - p.y) * RETURN_SPEED;
+
+    // draw particle
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+    ctx.fillStyle = p.color;
+    ctx.fill();
+  }
+}
+
+/* ---------------------------
+   Main animation loop
+   --------------------------- */
+let rafId = null;
+function loop() {
+  // clear
+  ctx.clearRect(0,0,window.innerWidth,window.innerHeight);
+
+  // draw background preset
+  drawBackground();
+
+  // update rotation
+  angle += 0.0055;
+
+  // draw particles on top
+  updateAndDrawParticles();
+
+  rafId = requestAnimationFrame(loop);
+}
+rafId = requestAnimationFrame(loop);
+
+/* ---------------------------
+   Interaction (mouse/touch)
+   --------------------------- */
+canvas.addEventListener('mousemove', (e) => { mouseX = e.clientX; mouseY = e.clientY; });
+canvas.addEventListener('mouseleave', () => { mouseX = -9999; mouseY = -9999; });
+
+canvas.addEventListener('touchstart', (e) => {
+  if (e.touches && e.touches[0]) {
+    mouseX = e.touches[0].clientX;
+    mouseY = e.touches[0].clientY;
+  }
+}, { passive: true });
+
+canvas.addEventListener('touchmove', (e) => {
+  if (e.touches && e.touches[0]) {
+    mouseX = e.touches[0].clientX;
+    mouseY = e.touches[0].clientY;
+  }
+}, { passive: true });
+
+canvas.addEventListener('touchend', (e) => {
+  mouseX = -9999; mouseY = -9999;
+}, { passive: true });
+
+/* ---------------------------
+   Triple-tap detection (mobile + desktop)
+   --------------------------- */
+const overlay = document.getElementById('overlay');
+const spinner = document.getElementById('spinner');
+const loadingText = document.getElementById('loadingText');
+const buttonArea = document.getElementById('buttonArea');
+const membersBtn = document.getElementById('membersBtn');
+const projectBtn = document.getElementById('projectBtn');
+const backBtn = document.getElementById('backBtn');
+const blurTarget = document.getElementById('blurTarget');
+
+let tapTimes = [];
+const TAP_MAX_INTERVAL = 600; // ms
+function isCenterTap(x, y) {
+  const rect = canvas.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const dx = x - cx, dy = y - cy;
+  const dist = Math.hypot(dx, dy);
+  const CENTER_RADIUS = Math.min(window.innerWidth, window.innerHeight) * 0.18;
+  return dist <= CENTER_RADIUS;
+}
+
+/* register taps for desktop click */
+canvas.addEventListener('click', (e) => {
+  registerTap(e.clientX, e.clientY);
+});
+
+/* register taps for touch devices */
+canvas.addEventListener('touchend', (e) => {
+  const t = e.changedTouches && e.changedTouches[0];
+  if (t) registerTap(t.clientX, t.clientY);
+}, { passive: true });
+
+function registerTap(clientX, clientY) {
+  const now = Date.now();
+  if (!isCenterTap(clientX, clientY)) {
+    tapTimes = []; // reset if tapping outside center
+    return;
+  }
+  tapTimes.push(now);
+  // keep only taps within interval window
+  tapTimes = tapTimes.filter(t => now - t <= TAP_MAX_INTERVAL);
+
+  if (tapTimes.length >= 3) {
+    tapTimes = [];
+    triggerOverlaySequence();
+  }
+}
+
+/* ---------------------------
+   Overlay sequence (blur + spinner -> show buttons)
+   --------------------------- */
+function triggerOverlaySequence() {
+  // show overlay and blur the background content
+  overlay.classList.add('active');
+  overlay.setAttribute('aria-hidden', 'false');
+  blurTarget.classList.add('blur');
+
+  // show spinner & loading text, hide button area
+  spinner.style.display = '';
+  loadingText.style.display = '';
+  loadingText.textContent = 'Loading…';
+  buttonArea.style.display = 'none';
+
+  // random load duration 2000-4000ms
+  const loadDuration = 2000 + Math.floor(Math.random() * 2001);
+  setTimeout(() => {
+    spinner.style.display = 'none';
+    loadingText.style.display = 'none';
+
+    // show two primary buttons side-by-side and a smaller BACK below
+    buttonArea.style.display = 'flex';
+    // ensure focus for accessibility
+    membersBtn.focus();
+  }, loadDuration);
+}
+
+/* Buttons behavior */
+membersBtn.addEventListener('click', () => {
+  // close overlay and remove blur, then open x.com
+  overlay.classList.remove('active');
+  overlay.setAttribute('aria-hidden', 'true');
+  blurTarget.classList.remove('blur');
+
+  // open in new tab (user-initiated click)
+  window.open('https://x.com', '_blank', 'noopener,noreferrer');
+});
+
+projectBtn.addEventListener('click', () => {
+  overlay.classList.remove('active');
+  overlay.setAttribute('aria-hidden', 'true');
+  blurTarget.classList.remove('blur');
+
+  window.open('https://google.com', '_blank', 'noopener,noreferrer');
+});
+
+backBtn.addEventListener('click', () => {
+  // just close overlay & un-blur
+  overlay.classList.remove('active');
+  overlay.setAttribute('aria-hidden', 'true');
+  blurTarget.classList.remove('blur');
+});
+
+/* ESC to dismiss overlay */
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    overlay.classList.remove('active');
+    overlay.setAttribute('aria-hidden', 'true');
+    blurTarget.classList.remove('blur');
+    // also close menus if open (below)
+    closeBgMenu();
+  }
+});
+
+/* ---------------------------
+   Background preset menu UI
+   --------------------------- */
 const bgMenu = document.getElementById('bgMenu');
-function buildMenu() {
+const flowerBtn = document.getElementById('flowerBtn');
+
+function buildBgMenu() {
   bgMenu.innerHTML = '';
   presets.forEach((p, idx) => {
     const opt = document.createElement('div');
     opt.className = 'bg-option';
     opt.tabIndex = 0;
-    opt.setAttribute('role','button');
-    opt.setAttribute('aria-pressed', idx===presetIndex ? 'true' : 'false');
+    opt.setAttribute('role', 'button');
+    opt.setAttribute('aria-pressed', idx === presetIndex ? 'true' : 'false');
 
     const dot = document.createElement('div');
     dot.className = 'dot';
-    // try to use literal color if provided, else create gradient sample
-    if (typeof p.dot === 'string' && p.dot.startsWith('linear')) {
-      // fallback color
-      dot.style.background = '#0a0a0a';
-    } else {
-      dot.style.background = p.dot || '#111';
-    }
-    dot.style.boxShadow = 'inset 0 -8px 16px rgba(0,0,0,0.25)';
+    dot.style.background = p.dot || '#111';
     opt.appendChild(dot);
 
     const label = document.createElement('div');
@@ -651,54 +689,79 @@ function buildMenu() {
     opt.addEventListener('click', () => {
       presetIndex = idx;
       // close menu
-      bgMenu.classList.remove('open');
-      bgMenu.setAttribute('aria-hidden','true');
-      // small fade transition not necessary because drawBackground handles
+      closeBgMenu();
     });
 
     opt.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault(); opt.click();
+        e.preventDefault();
+        opt.click();
       }
     });
 
     bgMenu.appendChild(opt);
   });
 }
-buildMenu();
+buildBgMenu();
 
-/* ---------- flower menu toggle ---------- */
-const flowerBtn = document.getElementById('flowerBtn');
-flowerBtn.addEventListener('click', (e) => {
+function toggleBgMenu() {
   const open = bgMenu.classList.toggle('open');
-  bgMenu.setAttribute('aria-hidden', !open);
+  flowerBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  bgMenu.setAttribute('aria-hidden', (!open).toString());
+}
+function closeBgMenu() {
+  bgMenu.classList.remove('open');
+  flowerBtn.setAttribute('aria-expanded', 'false');
+  bgMenu.setAttribute('aria-hidden', 'true');
+}
+
+flowerBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  toggleBgMenu();
 });
 
-/* click outside to close */
+/* close menu by clicking outside */
 document.addEventListener('click', (e) => {
   if (!bgMenu.contains(e.target) && e.target !== flowerBtn) {
-    bgMenu.classList.remove('open');
-    bgMenu.setAttribute('aria-hidden','true');
+    closeBgMenu();
   }
 });
 
-/* accessibility: close menu on ESC */
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    bgMenu.classList.remove('open');
-    bgMenu.setAttribute('aria-hidden','true');
+/* ---------------------------
+   Initialize particles center & rebuild on load
+   --------------------------- */
+function initAll() {
+  rebuildParticles();
+  updateCenterForParticles();
+  buildBgMenu();
+}
+initAll();
+
+/* ---------------------------
+   Touch / pointer adjustments for better mobile compatibility
+   --------------------------- */
+/* Prevent double-tap zoom on mobile (when triple tapping) */
+document.addEventListener('touchstart', function preventZoom(e) {
+  if (e.touches && e.touches.length > 1) {
+    e.preventDefault();
   }
-});
+}, { passive: false });
 
-/* ---------- initial draw of background to ensure black default ---------- */
-drawBackground();
+/* ---------------------------
+   Small performance fallback:
+   If too many particles on low devices, reduce rings (optional tweak)
+   --------------------------- */
+/* Example: we can detect slow devices and reduce NUM_RINGS, but for now we keep as-is.
+   If needed uncomment and adapt below:
+if (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2) {
+  // reduce detail
+}
+*/
 
-/* ---------- ensure CENTER_RADIUS updates on resize ---------- */
-window.addEventListener('resize', () => {
-  // nothing else — isCenterPoint uses live rect
-});
-
-/* ---------- end of script ---------- */
+/* ---------------------------
+   Done
+   --------------------------- */
+console.log('Interactive Particle Circle initialized — particles:', totalParticlesCount);
 </script>
 </body>
 </html>
