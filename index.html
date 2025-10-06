@@ -1,165 +1,288 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Pinkish Voice Animation</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap');
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Particle Circle</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-  body {
-    margin: 0;
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: #1a0a1f; /* dark purple-black */
-    font-family: 'Poppins', sans-serif;
-  }
+        body {
+            background: #1a1a1a;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
 
-  .voice-icon {
-    width: 110px;
-    height: 110px;
-    background: radial-gradient(circle at center, #ff6fa4, #c72e88);
-    border-radius: 50%;
-    box-shadow: 0 0 12px #ff94b9, 0 0 30px #c72e88;
-    cursor: pointer;
-    position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: box-shadow 0.4s ease, transform 0.4s ease;
-    user-select: none; /* prevent text select */
-  }
+        #canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
 
-  /* Mic shape */
-  .mic-body {
-    width: 48px;
-    height: 72px;
-    background: #ffe1f0;
-    border-radius: 24px 24px 16px 16px;
-    position: relative;
-    box-shadow: inset 0 4px 8px rgba(255, 153, 195, 0.8);
-    transition: background 0.4s ease;
-  }
+        .settings-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s;
+        }
 
-  /* Mic top rounded */
-  .mic-head {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 48px;
-    height: 28px;
-    background: linear-gradient(135deg, #ff92b7, #c91a7e);
-    border-radius: 24px 24px 0 0;
-    box-shadow:
-      0 0 5px #ff82a8,
-      inset 0 -4px 6px #ff5a8e;
-    transition: background 0.4s ease;
-  }
+        .settings-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
 
-  /* Mic detail lines */
-  .mic-lines {
-    position: absolute;
-    top: 35px;
-    left: 12px;
-    width: 24px;
-    height: 3px;
-    background: #d44f84;
-    border-radius: 2px;
-    box-shadow:
-      0 8px 0 #d44f84,
-      0 16px 0 #d44f84;
-  }
+        .settings-icon {
+            width: 24px;
+            height: 24px;
+            fill: #fff;
+        }
 
-  /* Hover and active animation */
-  .voice-icon:hover, .voice-icon.active {
-    animation: pulsePink 1.3s ease-in-out infinite;
-    box-shadow:
-      0 0 20px #ff9ac8,
-      0 0 45px #d6418d,
-      0 0 70px #e1458f;
-    transform: scale(1.12);
-  }
+        .controls {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+        }
 
-  /* Smooth pulse animation for pink glow */
-  @keyframes pulsePink {
-    0%, 100% {
-      box-shadow:
-        0 0 20px #ff9ac8,
-        0 0 45px #d6418d,
-        0 0 70px #e1458f;
-      transform: scale(1.12);
-    }
-    50% {
-      box-shadow:
-        0 0 32px #ffaccf,
-        0 0 58px #db4a93,
-        0 0 90px #e25097;
-      transform: scale(1.18);
-    }
-  }
+        .control-btn {
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s;
+        }
 
-  /* Responsive scaling for smaller devices */
-  @media (max-width: 480px) {
-    .voice-icon {
-      width: 80px;
-      height: 80px;
-    }
-    .mic-body {
-      width: 36px;
-      height: 54px;
-      border-radius: 18px 18px 12px 12px;
-    }
-    .mic-head {
-      width: 36px;
-      height: 20px;
-      border-radius: 18px 18px 0 0;
-    }
-    .mic-lines {
-      top: 27px;
-      left: 9px;
-      width: 18px;
-      height: 2.5px;
-      box-shadow:
-        0 6px 0 #d44f84,
-        0 12px 0 #d44f84;
-    }
-  }
-</style>
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .control-icon {
+            width: 30px;
+            height: 30px;
+            fill: #fff;
+        }
+    </style>
 </head>
 <body>
+    <canvas id="canvas"></canvas>
+    
+    <button class="settings-btn">
+        <svg class="settings-icon" viewBox="0 0 24 24">
+            <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+        </svg>
+    </button>
 
-<div class="voice-icon" id="voiceIcon" aria-label="Voice Input Button" role="button" tabindex="0">
-  <div class="mic-body">
-    <div class="mic-head"></div>
-    <div class="mic-lines"></div>
-  </div>
-</div>
+    <div class="controls">
+        <button class="control-btn" id="closeBtn">
+            <svg class="control-icon" viewBox="0 0 24 24">
+                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+            </svg>
+        </button>
+        <button class="control-btn" id="micBtn">
+            <svg class="control-icon" viewBox="0 0 24 24">
+                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+            </svg>
+        </button>
+    </div>
 
-<script>
-  const voiceIcon = document.getElementById('voiceIcon');
-
-  // Toggle animation on click or touch
-  voiceIcon.addEventListener('click', () => {
-    voiceIcon.classList.toggle('active');
-  });
-
-  // To allow keyboard accessibility: toggle on Enter or Space keys
-  voiceIcon.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      voiceIcon.classList.toggle('active');
-    }
-  });
-
-  // Remove animation if clicked outside (for touch devices)
-  document.body.addEventListener('click', (e) => {
-    if (!voiceIcon.contains(e.target)) {
-      voiceIcon.classList.remove('active');
-    }
-  });
-</script>
-
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let particles = [];
+        let animationId;
+        let mouseX = -1000;
+        let mouseY = -1000;
+        let isCircleMode = true;
+        let angle = 0;
+        
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            initParticles();
+        }
+        
+        class Particle {
+            constructor(x, y, radius, angleOffset) {
+                this.radius = radius;
+                this.angleOffset = angleOffset;
+                this.x = x;
+                this.y = y;
+                this.size = Math.random() * 0.8 + 0.4;
+                this.color = Math.random() > 0.85 ? '#ff6b9d' : '#ffc0cb';
+                this.centerX = canvas.width / 2;
+                this.centerY = canvas.height / 2;
+            }
+            
+            update() {
+                // Calculate circular motion position
+                const targetX = this.centerX + Math.cos(angle + this.angleOffset) * this.radius;
+                const targetY = this.centerY + Math.sin(angle + this.angleOffset) * this.radius;
+                
+                // Calculate distance from mouse
+                const dx = mouseX - this.x;
+                const dy = mouseY - this.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const maxDist = 200;
+                
+                // Strong repulsion from mouse
+                if (dist < maxDist && dist > 0) {
+                    const force = (maxDist - dist) / maxDist;
+                    const repelX = (this.x - mouseX) / dist;
+                    const repelY = (this.y - mouseY) / dist;
+                    
+                    this.x += repelX * force * 25;
+                    this.y += repelY * force * 25;
+                }
+                
+                // Slow return to circular motion path
+                const returnSpeed = 0.015;
+                this.x += (targetX - this.x) * returnSpeed;
+                this.y += (targetY - this.y) * returnSpeed;
+            }
+            
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+        }
+        
+        function initParticles() {
+            particles = [];
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const maxRadius = Math.min(canvas.width, canvas.height) * 0.28;
+            
+            // Create 5000+ particles with equal spacing
+            const numRings = 50;
+            const particlesPerRing = [];
+            let totalParticles = 0;
+            
+            // Calculate particles per ring for equal spacing
+            for (let ring = 0; ring < numRings; ring++) {
+                const radius = ((ring + 1) / numRings) * maxRadius;
+                const circumference = 2 * Math.PI * radius;
+                const particlesInRing = Math.max(Math.floor(circumference / 4), 12);
+                particlesPerRing.push(particlesInRing);
+                totalParticles += particlesInRing;
+            }
+            
+            // Create particles
+            for (let ring = 0; ring < numRings; ring++) {
+                const radius = ((ring + 1) / numRings) * maxRadius;
+                const particlesInRing = particlesPerRing[ring];
+                
+                for (let i = 0; i < particlesInRing; i++) {
+                    const angleOffset = (i / particlesInRing) * Math.PI * 2;
+                    const x = centerX + Math.cos(angleOffset) * radius;
+                    const y = centerY + Math.sin(angleOffset) * radius;
+                    
+                    particles.push(new Particle(x, y, radius, angleOffset));
+                }
+            }
+            
+            console.log(`Total particles: ${particles.length}`);
+        }
+        
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Update rotation angle
+            angle += 0.005;
+            
+            particles.forEach(particle => {
+                particle.update();
+                particle.draw();
+            });
+            
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        function disperseParticles() {
+            isCircleMode = false;
+            particles.forEach(particle => {
+                particle.baseX = Math.random() * canvas.width;
+                particle.baseY = Math.random() * canvas.height;
+                particle.speedX = (Math.random() - 0.5) * 2;
+                particle.speedY = (Math.random() - 0.5) * 2;
+            });
+        }
+        
+        function formCircle() {
+            isCircleMode = true;
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = Math.min(canvas.width, canvas.height) * 0.25;
+            
+            particles.forEach(particle => {
+                const angle = Math.random() * Math.PI * 2;
+                const r = Math.sqrt(Math.random()) * radius;
+                particle.baseX = centerX + Math.cos(angle) * r;
+                particle.baseY = centerY + Math.sin(angle) * r;
+            });
+        }
+        
+        canvas.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+        
+        canvas.addEventListener('mouseleave', () => {
+            mouseX = -1000;
+            mouseY = -1000;
+        });
+        
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            mouseX = e.touches[0].clientX;
+            mouseY = e.touches[0].clientY;
+        });
+        
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            mouseX = e.touches[0].clientX;
+            mouseY = e.touches[0].clientY;
+        });
+        
+        canvas.addEventListener('touchend', () => {
+            mouseX = -1000;
+            mouseY = -1000;
+        });
+        
+        document.getElementById('closeBtn').addEventListener('click', () => {
+            if (isCircleMode) {
+                disperseParticles();
+            } else {
+                formCircle();
+            }
+        });
+        
+        window.addEventListener('resize', resizeCanvas);
+        
+        resizeCanvas();
+        animate();
+    </script>
 </body>
 </html>
