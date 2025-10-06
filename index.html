@@ -1,449 +1,704 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Particle Circle</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background: #1a1a1a;
-            overflow: hidden;
-            font-family: Arial, sans-serif;
-            color: #fff;
-        }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Particle Circle — MEMBERS</title>
+<style>
+  /* ---------- basic reset ---------- */
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;width:100%;background:#000;font-family:Inter,system-ui,Arial,sans-serif;color:#fff;overflow:hidden}
 
-        /* wrapper so we can blur everything except overlay */
-        .app-wrapper {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-        }
+  /* ---------- app layout ---------- */
+  .app {
+    position:relative;
+    width:100vw; height:100vh;
+    touch-action:none; /* better touch control */
+  }
 
-        #canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-        }
+  canvas{
+    position:absolute; left:0; top:0;
+    width:100%; height:100%;
+    display:block;
+  }
 
-        .settings-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 50px;
-            height: 50px;
-            background: rgba(255,255,255,0.1);
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.3s;
-            z-index: 5;
-        }
-        .settings-btn:hover { background: rgba(255,255,255,0.2); }
-        .settings-icon { width: 24px; height: 24px; fill: #fff; }
+  /* ---------- top-right flower menu ---------- */
+  .bg-toggle {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    z-index: 60;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
 
-        .controls {
-            position: absolute;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 20px;
-            z-index: 5;
-        }
-        .control-btn {
-            width: 60px; height: 60px;
-            background: rgba(255,255,255,0.1);
-            border: none; border-radius: 50%;
-            cursor: pointer; display: flex;
-            align-items: center; justify-content: center;
-            transition: background 0.3s;
-        }
-        .control-btn:hover { background: rgba(255,255,255,0.2); }
-        .control-icon { width: 30px; height: 30px; fill: #fff; }
+  .flower-btn {
+    width:46px; height:46px;
+    border-radius:12px;
+    border:none;
+    background: rgba(255,255,255,0.06);
+    color:white;
+    font-size:20px;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.45);
+    transition:transform .18s ease, background .18s ease;
+  }
+  .flower-btn:active{ transform: scale(.96) }
+  .flower-btn:hover{ background: rgba(255,255,255,0.09) }
 
-        /* blur state applied to app-wrapper > .blur-target */
-        .blur-target.blur {
-            filter: blur(6px) saturate(0.85);
-            transition: filter 0.35s ease;
-            pointer-events: none; /* prevent interactions while blurred */
-        }
+  .bg-menu {
+    position:absolute;
+    top:64px;
+    right:0;
+    min-width:220px;
+    background: rgba(10,10,10,0.7);
+    border-radius:12px;
+    padding:10px;
+    display:grid;
+    gap:8px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    transform-origin: top right;
+    opacity:0; pointer-events:none;
+    transform: translateY(-6px) scale(.98);
+    transition: opacity .18s ease, transform .18s ease;
+    backdrop-filter: blur(6px);
+  }
+  .bg-menu.open { opacity:1; pointer-events:auto; transform: translateY(0) scale(1); }
 
-        /* overlay for loading + button */
-        .overlay {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 999;
-            pointer-events: none; /* initially non-interactive */
-        }
+  .bg-option {
+    display:flex; align-items:center; gap:10px;
+    padding:10px; border-radius:10px; cursor:pointer;
+    background: rgba(255,255,255,0.02);
+    transition: background .12s ease, transform .12s ease;
+    user-select:none;
+  }
+  .bg-option:hover { background: rgba(255,255,255,0.04); transform: translateY(-2px) }
+  .bg-option .dot {
+    width:36px; height:36px; border-radius:8px; flex-shrink:0;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.55);
+  }
+  .bg-option .label { font-size:14px; color:#fff; opacity:.95; }
 
-        .overlay-inner {
-            background: rgba(0,0,0,0.45);
-            border-radius: 12px;
-            padding: 28px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 18px;
-            pointer-events: auto; /* allow clicks on button */
-            min-width: 220px;
-            backdrop-filter: blur(4px);
-            box-shadow: 0 8px 30px rgba(0,0,0,0.6);
-        }
+  /* ---------- overlay / blur / loading ---------- */
+  .blur-target.blur { filter: blur(6px) saturate(.92); transition: filter .28s ease; pointer-events:none; }
+  #overlay {
+    position:absolute; inset:0; z-index:70;
+    display:flex; align-items:center; justify-content:center;
+    pointer-events:none; opacity:0;
+    transition: opacity .22s ease;
+  }
+  #overlay.active { opacity:1; pointer-events:auto; }
 
-        .spinner {
-            width: 64px;
-            height: 64px;
-            border-radius: 50%;
-            border: 6px solid rgba(255,255,255,0.12);
-            border-top-color: #ff6b9d;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
+  .overlay-card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+    padding:22px 20px;
+    border-radius:14px;
+    display:flex; flex-direction:column; align-items:center; gap:14px;
+    backdrop-filter: blur(8px) saturate(.9);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+  }
 
-        .members-btn {
-            background: linear-gradient(90deg,#ff6b9d,#ff9fbf);
-            color: #1a1a1a;
-            border: none;
-            padding: 12px 22px;
-            font-weight: 700;
-            border-radius: 999px;
-            cursor: pointer;
-            display: inline-block;
-            text-transform: uppercase;
-            letter-spacing: 0.6px;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.45);
-        }
+  .spinner {
+    width:64px; height:64px; border-radius:50%;
+    border:6px solid rgba(255,255,255,0.08);
+    border-top-color: #ff6b9d;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg) } }
 
-        .hidden { display: none; }
+  .loading-text { font-size:15px; opacity:.95; }
+  .members-btn {
+    display:inline-block; padding:12px 26px; border-radius:999px;
+    border:none; background:linear-gradient(90deg,#ff6b9d,#ff9fbf);
+    color:#111; font-weight:800; letter-spacing:.6px; cursor:pointer;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+    text-transform:uppercase; font-size:13px;
+  }
 
-        /* small responsive tweaks */
-        @media (max-width: 480px) {
-            .overlay-inner { padding: 18px; min-width: 180px; }
-            .spinner { width: 48px; height: 48px; border-width: 5px; }
-        }
-    </style>
+  /* responsive smaller sizes */
+  @media (max-width:520px){
+    .flower-btn { width:44px; height:44px; font-size:18px }
+    .overlay-card { padding:18px }
+    .spinner { width:52px; height:52px; border-width:5px }
+  }
+
+  /* small hint label */
+  .hint {
+    position:absolute; left:18px; bottom:18px; z-index:55;
+    background: rgba(0,0,0,0.35); padding:8px 12px; border-radius:999px;
+    font-size:13px; color:#fff; opacity:.9;
+  }
+</style>
 </head>
 <body>
-    <div class="app-wrapper">
-        <div class="blur-target">
-            <canvas id="canvas"></canvas>
+<div class="app" id="app">
+  <!-- canvas -->
+  <canvas id="canvas"></canvas>
 
-            <button class="settings-btn" title="Settings">
-                <svg class="settings-icon" viewBox="0 0 24 24">
-                    <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
-                </svg>
-            </button>
-
-            <div class="controls">
-                <button class="control-btn" id="closeBtn" title="Toggle">
-                    <svg class="control-icon" viewBox="0 0 24 24">
-                        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-                    </svg>
-                </button>
-                <button class="control-btn" id="micBtn" title="Mic">
-                    <svg class="control-icon" viewBox="0 0 24 24">
-                        <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-                        <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-                    </svg>
-                </button>
-            </div>
-        </div>
-
-        <!-- overlay (initially hidden) -->
-        <div id="overlay" class="overlay hidden" aria-hidden="true">
-            <div class="overlay-inner" id="overlayInner" role="dialog" aria-modal="true" aria-label="Loading and members">
-                <div id="spinner" class="spinner" title="Loading"></div>
-                <div id="loadingText">Loading…</div>
-                <button id="membersBtn" class="members-btn hidden">MEMBERS</button>
-            </div>
-        </div>
+  <!-- top-right flower & menu -->
+  <div class="bg-toggle" id="bgToggle">
+    <button class="flower-btn" id="flowerBtn" title="Change background">🌸</button>
+    <div class="bg-menu" id="bgMenu" aria-hidden="true">
+      <!-- options appended by JS for clarity -->
     </div>
+  </div>
 
-    <script>
-        // === existing particle code (kept mostly intact) ===
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
+  <!-- hint -->
+  <div class="hint">Triple-tap center to open</div>
 
-        let particles = [];
-        let animationId;
-        let mouseX = -1000;
-        let mouseY = -1000;
-        let isCircleMode = true;
-        let angle = 0;
+  <!-- overlay: blur + loading + members -->
+  <div id="overlay" aria-hidden="true">
+    <div class="overlay-card" role="dialog" aria-modal="true" aria-label="Loading and members">
+      <div id="spinner" class="spinner" aria-hidden="false"></div>
+      <div id="loadingText" class="loading-text">Loading…</div>
+      <button id="membersBtn" class="members-btn" style="display:none">MEMBERS</button>
+    </div>
+  </div>
+</div>
 
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            initParticles();
-        }
+<script>
+/* ========== MAIN JS ==========
 
-        class Particle {
-            constructor(x, y, radius, angleOffset) {
-                this.radius = radius;
-                this.angleOffset = angleOffset;
-                this.x = x;
-                this.y = y;
-                this.size = Math.random() * 0.8 + 0.4;
-                this.color = Math.random() > 0.85 ? '#ff6b9d' : '#ffc0cb';
-                this.centerX = canvas.width / 2;
-                this.centerY = canvas.height / 2;
-            }
+  - Preserves original particle-circle behavior (rings -> rotate)
+  - Mouse/touch repulsion preserved
+  - Triple-tap center triggers overlay (loading spinner 2-4s), then MEMBERS button
+  - Flower button toggles background presets (6)
+  - Mobile-friendly touch handlers
+*/
 
-            update() {
-                const targetX = this.centerX + Math.cos(angle + this.angleOffset) * this.radius;
-                const targetY = this.centerY + Math.sin(angle + this.angleOffset) * this.radius;
+/* --------- Canvas & resize --------- */
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d', { alpha: false }); // false for performance
+let DPR = Math.max(1, window.devicePixelRatio || 1);
+let W = canvas.width = Math.floor(window.innerWidth * DPR);
+let H = canvas.height = Math.floor(window.innerHeight * DPR);
+canvas.style.width = window.innerWidth + 'px';
+canvas.style.height = window.innerHeight + 'px';
+ctx.scale(DPR, DPR);
 
-                const dx = mouseX - this.x;
-                const dy = mouseY - this.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                const maxDist = 200;
+function resize() {
+  DPR = Math.max(1, window.devicePixelRatio || 1);
+  W = canvas.width = Math.floor(window.innerWidth * DPR);
+  H = canvas.height = Math.floor(window.innerHeight * DPR);
+  canvas.style.width = window.innerWidth + 'px';
+  canvas.style.height = window.innerHeight + 'px';
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.scale(DPR, DPR);
+  rebuildParticles();
+}
+window.addEventListener('resize', resize);
 
-                if (dist < maxDist && dist > 0) {
-                    const force = (maxDist - dist) / maxDist;
-                    const repelX = (this.x - mouseX) / dist;
-                    const repelY = (this.y - mouseY) / dist;
+/* --------- Particle system (rings, many particles) --------- */
+let particles = [];
+let angle = 0;
+let mouseX = -9999, mouseY = -9999;
+let isCircleMode = true;
 
-                    this.x += repelX * force * 25;
-                    this.y += repelY * force * 25;
-                }
+/* parameters */
+const NUM_RINGS = 50;
+const MIN_PARTICLE_SEP = 4; // spacing approx
+const MAX_PARTICLES_LIMIT = 7000; // safety cap
+let totalParticlesCount = 0;
 
-                // Slow return/responsiveness
-                const returnSpeed = 0.015;
-                this.x += (targetX - this.x) * returnSpeed;
-                this.y += (targetY - this.y) * returnSpeed;
-            }
+function rebuildParticles() {
+  particles = [];
+  const cw = window.innerWidth;
+  const ch = window.innerHeight;
+  const centerX = cw/2;
+  const centerY = ch/2;
+  const maxRadius = Math.min(cw, ch) * 0.28;
 
-            draw() {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fillStyle = this.color;
-                ctx.fill();
-            }
-        }
+  let total = 0;
+  const perRing = [];
+  for (let r=0; r<NUM_RINGS; r++){
+    const radius = ((r+1)/NUM_RINGS) * maxRadius;
+    const circ = 2 * Math.PI * radius;
+    const count = Math.max(Math.floor(circ / MIN_PARTICLE_SEP), 8);
+    perRing.push(count);
+    total += count;
+    if (total > MAX_PARTICLES_LIMIT) break;
+  }
 
-        function initParticles() {
-            particles = [];
-            const centerX = canvas.width / 2;
-            const centerY = canvas.height / 2;
-            const maxRadius = Math.min(canvas.width, canvas.height) * 0.28;
+  // create particles
+  for (let r=0; r<perRing.length; r++){
+    const radius = ((r+1)/NUM_RINGS) * maxRadius;
+    const count = perRing[r];
+    for (let i=0; i<count; i++){
+      const a = (i / count) * Math.PI * 2;
+      const x = centerX + Math.cos(a) * radius;
+      const y = centerY + Math.sin(a) * radius;
+      const p = {
+        x, y,
+        size: Math.random()*0.9 + 0.35,
+        color: Math.random() > 0.86 ? '#ff6b9d' : '#ffc0cb',
+        radius,
+        angleOffset: a,
+        centerX, centerY
+      };
+      particles.push(p);
+    }
+  }
+  totalParticlesCount = particles.length;
+  // console.log('particles', totalParticlesCount);
+}
+rebuildParticles();
 
-            const numRings = 50;
-            const particlesPerRing = [];
-            let totalParticles = 0;
+/* --------- Particle update/draw (with repulsion) --------- */
+function updateAndDrawParticles() {
+  const cw = window.innerWidth;
+  const ch = window.innerHeight;
+  const maxDist = 220;
+  const returnSpeed = 0.015; // smooth return
+  for (let i=0;i<particles.length;i++){
+    const p = particles[i];
+    // target circular path
+    const tx = p.centerX + Math.cos(angle + p.angleOffset) * p.radius;
+    const ty = p.centerY + Math.sin(angle + p.angleOffset) * p.radius;
 
-            for (let ring = 0; ring < numRings; ring++) {
-                const radius = ((ring + 1) / numRings) * maxRadius;
-                const circumference = 2 * Math.PI * radius;
-                const particlesInRing = Math.max(Math.floor(circumference / 4), 12);
-                particlesPerRing.push(particlesInRing);
-                totalParticles += particlesInRing;
-            }
+    // mouse repulsion
+    const dx = mouseX - p.x;
+    const dy = mouseY - p.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist < maxDist && dist > 0) {
+      const force = (maxDist - dist)/maxDist;
+      const repelX = (p.x - mouseX) / dist;
+      const repelY = (p.y - mouseY) / dist;
+      p.x += repelX * force * 28;
+      p.y += repelY * force * 28;
+    }
 
-            for (let ring = 0; ring < numRings; ring++) {
-                const radius = ((ring + 1) / numRings) * maxRadius;
-                const particlesInRing = particlesPerRing[ring];
+    // smooth return
+    p.x += (tx - p.x) * returnSpeed;
+    p.y += (ty - p.y) * returnSpeed;
 
-                for (let i = 0; i < particlesInRing; i++) {
-                    const angleOffset = (i / particlesInRing) * Math.PI * 2;
-                    const x = centerX + Math.cos(angleOffset) * radius;
-                    const y = centerY + Math.sin(angleOffset) * radius;
+    // draw
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+    ctx.fillStyle = p.color;
+    ctx.fill();
+  }
+}
 
-                    particles.push(new Particle(x, y, radius, angleOffset));
-                }
-            }
-            //console.log(`Total particles: ${particles.length}`);
-        }
+/* --------- Animation loop --------- */
+let rafId = null;
+let lastTs = performance.now();
 
-        function animate() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+function loop(ts){
+  const cw = window.innerWidth, ch = window.innerHeight;
+  ctx.clearRect(0,0,cw,ch);
 
-            angle += 0.005;
+  // draw background (handled by chosen preset function)
+  drawBackground();
 
-            particles.forEach(particle => {
-                particle.update();
-                particle.draw();
+  // update rotation
+  angle += 0.0055;
+
+  // draw particles
+  updateAndDrawParticles();
+
+  rafId = requestAnimationFrame(loop);
+}
+rafId = requestAnimationFrame(loop);
+
+/* --------- Interaction: mouse/touch for repulsion --------- */
+canvas.addEventListener('mousemove', (e) => {
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+});
+canvas.addEventListener('mouseleave', () => {
+  mouseX = -9999; mouseY = -9999;
+});
+canvas.addEventListener('touchstart', (e) => {
+  if (e.touches && e.touches[0]) {
+    mouseX = e.touches[0].clientX;
+    mouseY = e.touches[0].clientY;
+  }
+}, { passive: true });
+canvas.addEventListener('touchmove', (e) => {
+  if (e.touches && e.touches[0]) {
+    mouseX = e.touches[0].clientX;
+    mouseY = e.touches[0].clientY;
+  }
+}, { passive: true });
+canvas.addEventListener('touchend', (e) => {
+  mouseX = -9999; mouseY = -9999;
+}, { passive: true });
+
+/* --------- preserve center coordinates on resize for particles --------- */
+window.addEventListener('resize', () => {
+  // Recalculate each particle center positions
+  const cx = window.innerWidth/2, cy = window.innerHeight/2;
+  particles.forEach(p => { p.centerX = cx; p.centerY = cy; });
+});
+
+/* ======= TRIPLE-TAP CENTER DETECTION (works on mobile & desktop) ======= */
+const overlay = document.getElementById('overlay');
+const spinner = document.getElementById('spinner');
+const loadingText = document.getElementById('loadingText');
+const membersBtn = document.getElementById('membersBtn');
+const blurTargetEl = document.querySelector('#app'); // blur whole app content via CSS class
+
+let tapTimes = [];
+const TAP_MAX_INTERVAL = 600; // ms
+const CENTER_RADIUS = Math.min(window.innerWidth, window.innerHeight) * 0.18; // adaptive
+
+function isCenterPoint(x,y){
+  const rect = canvas.getBoundingClientRect();
+  const cx = rect.left + rect.width/2;
+  const cy = rect.top + rect.height/2;
+  const dx = x - cx, dy = y - cy;
+  return Math.hypot(dx,dy) <= CENTER_RADIUS;
+}
+
+function registerTapAt(clientX, clientY){
+  const now = Date.now();
+  if (!isCenterPoint(clientX, clientY)) {
+    tapTimes = []; // reset if tapping elsewhere
+    return;
+  }
+  tapTimes.push(now);
+  // keep only those within TAP_MAX_INTERVAL window
+  tapTimes = tapTimes.filter(t => now - t <= TAP_MAX_INTERVAL);
+  if (tapTimes.length >= 3) {
+    tapTimes = [];
+    triggerOverlaySequence();
+  }
+}
+
+/* attach handlers for click and touch */
+canvas.addEventListener('click', (e) => {
+  registerTapAt(e.clientX, e.clientY);
+});
+canvas.addEventListener('touchend', (e) => {
+  const t = e.changedTouches && e.changedTouches[0];
+  if (t) registerTapAt(t.clientX, t.clientY);
+}, { passive: true });
+
+/* overlay sequence: show blur + spinner -> after random 2-4s show MEMBERS */
+function triggerOverlaySequence() {
+  // show overlay & blur
+  overlay.classList.add('active');
+  blurTargetEl.classList.add('blur');
+
+  spinner.style.display = '';
+  loadingText.style.display = '';
+  loadingText.textContent = 'Loading…';
+  membersBtn.style.display = 'none';
+
+  overlay.setAttribute('aria-hidden','false');
+
+  // random between 2000 and 4000
+  const dur = 2000 + Math.floor(Math.random() * 2001);
+  setTimeout(() => {
+    spinner.style.display = 'none';
+    loadingText.style.display = 'none';
+    membersBtn.style.display = 'inline-block';
+    membersBtn.focus();
+  }, dur);
+}
+
+/* members button click: open x.com in new tab and remove overlay/blur */
+membersBtn.addEventListener('click', () => {
+  overlay.classList.remove('active'); overlay.setAttribute('aria-hidden','true');
+  blurTargetEl.classList.remove('blur');
+  // open in new tab via user click (allowed)
+  window.open('https://x.com', '_blank', 'noopener,noreferrer');
+});
+
+/* allow escape to dismiss overlay (removes blur) */
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    overlay.classList.remove('active'); overlay.setAttribute('aria-hidden','true');
+    blurTargetEl.classList.remove('blur');
+  }
+});
+
+/* --------- BACKGROUND PRESETS (6 professional styles) --------- */
+/*
+  Each preset has:
+    - draw: function to render background
+    - description: label
+    - sample color/dot for menu
+*/
+const presets = [
+  {
+    id: 'black',
+    label: 'Classic Black',
+    dot: '#0b0b0b',
+    draw: function(){
+      // simple solid black (do nothing; canvas cleared already)
+      // We keep canvas background as black by clearing above
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0,0,window.innerWidth, window.innerHeight);
+    }
+  },
+  {
+    id: 'deep-gradient',
+    label: 'Deep Radial Gradient',
+    dot: 'linear-gradient(45deg,#041426,#00121f)',
+    draw: function(){
+      const w = window.innerWidth, h = window.innerHeight;
+      const g = ctx.createRadialGradient(w*0.5,h*0.45,40,w*0.5,h*0.45, Math.max(w,h));
+      g.addColorStop(0,'#071926');
+      g.addColorStop(0.5,'#001827');
+      g.addColorStop(1,'#000');
+      ctx.fillStyle = g;
+      ctx.fillRect(0,0,w,h);
+    }
+  },
+  {
+    id: 'soft-noise',
+    label: 'Soft Noise + Vignette',
+    dot: '#0b1b2b',
+    // procedural subtle noise via alpha rectangles
+    draw: function(){
+      const w = window.innerWidth, h = window.innerHeight;
+      // base gradient
+      const g = ctx.createLinearGradient(0,0,w,h);
+      g.addColorStop(0,'#041120');
+      g.addColorStop(1,'#001019');
+      ctx.fillStyle = g;
+      ctx.fillRect(0,0,w,h);
+
+      // vignette
+      const vg = ctx.createRadialGradient(w/2,h/2, Math.min(w,h)/6, w/2,h/2, Math.max(w,h));
+      vg.addColorStop(0,'rgba(255,255,255,0)');
+      vg.addColorStop(1,'rgba(0,0,0,0.45)');
+      ctx.fillStyle = vg;
+      ctx.fillRect(0,0,w,h);
+
+      // subtle animated dots (we'll reuse particles, but add a soft overlay)
+      // create low-alpha noise pattern (static-ish)
+      ctx.globalAlpha = 0.04;
+      for (let i=0;i<120;i++){
+        const x = Math.random()*w;
+        const y = Math.random()*h;
+        const r = Math.random()*1.6;
+        ctx.beginPath();
+        ctx.fillStyle = '#ffffff';
+        ctx.arc(x,y,r,0,Math.PI*2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+  },
+  {
+    id: 'starfield',
+    label: 'Subtle Starfield',
+    dot: '#001628',
+    // draws a moving star field on background (uses time)
+    draw: (function(){
+      // create star cache
+      const stars = [];
+      const cacheSize = 220;
+      let inited = false;
+      return function(){
+        const w = window.innerWidth, h = window.innerHeight;
+        if (!inited) {
+          stars.length = 0;
+          for (let i=0;i<cacheSize;i++){
+            stars.push({
+              x: Math.random()*w,
+              y: Math.random()*h,
+              r: Math.random()*1.6,
+              s: 0.2 + Math.random()*0.9,
+              vx: (Math.random()-0.5)*0.02,
+              vy: -0.02 - Math.random()*0.04
             });
-
-            animationId = requestAnimationFrame(animate);
+          }
+          inited = true;
         }
+        // dark gradient base
+        const g = ctx.createLinearGradient(0,0,w,h);
+        g.addColorStop(0,'#000814');
+        g.addColorStop(1,'#00020a');
+        ctx.fillStyle = g;
+        ctx.fillRect(0,0,w,h);
 
-        function disperseParticles() {
-            isCircleMode = false;
-            particles.forEach(particle => {
-                particle.baseX = Math.random() * canvas.width;
-                particle.baseY = Math.random() * canvas.height;
-                particle.speedX = (Math.random() - 0.5) * 2;
-                particle.speedY = (Math.random() - 0.5) * 2;
+        // update/draw stars
+        ctx.globalAlpha = 1;
+        for (let i=0;i<stars.length;i++){
+          const s = stars[i];
+          s.x += s.vx;
+          s.y += s.vy;
+          if (s.y < -10) { s.x = Math.random()*w; s.y = h + 10; }
+          if (s.x < -10) s.x = w + 10;
+          const twinkle = 0.6 + Math.sin((Date.now()*0.002) + i)*0.4;
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(255,255,255,${s.s * twinkle})`;
+          ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+          ctx.fill();
+        }
+      }
+    })()
+  },
+  {
+    id: 'soft-pastel',
+    label: 'Soft Pastel Gradient',
+    dot: '#ffd1e8',
+    draw: function(){
+      const w = window.innerWidth, h = window.innerHeight;
+      const g = ctx.createLinearGradient(0,0,w,h);
+      g.addColorStop(0,'#0b0910');
+      g.addColorStop(0.3,'#0f1724');
+      g.addColorStop(1,'#041018');
+      ctx.fillStyle = g;
+      ctx.fillRect(0,0,w,h);
+
+      // subtle moving pastel overlay
+      const grad = ctx.createLinearGradient(0,0,w,0);
+      grad.addColorStop(0,'rgba(255,120,180,0.06)');
+      grad.addColorStop(0.5,'rgba(120,200,255,0.06)');
+      grad.addColorStop(1,'rgba(160,120,255,0.06)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0,0,w,h);
+    }
+  },
+  {
+    id: 'glassy',
+    label: 'Glassy Blur Lights',
+    dot: '#072b3a',
+    draw: (function(){
+      // create few blurred circles that slowly move
+      const blobs = [];
+      let ready = false;
+      return function(){
+        const w = window.innerWidth, h = window.innerHeight;
+        if (!ready) {
+          blobs.length = 0;
+          const n = 6;
+          for (let i=0;i<n;i++){
+            blobs.push({
+              x: Math.random()*w,
+              y: Math.random()*h,
+              r: Math.max(w,h)*0.2 * (0.6 + Math.random()*0.6),
+              vx: (Math.random()-0.5)*0.2,
+              vy: (Math.random()-0.5)*0.2,
+              c: `hsla(${Math.floor(Math.random()*360)},70%,60%,0.14)`
             });
+          }
+          ready = true;
         }
+        // dark base
+        ctx.fillStyle = '#02060a';
+        ctx.fillRect(0,0,window.innerWidth, window.innerHeight);
 
-        function formCircle() {
-            isCircleMode = true;
-            const centerX = canvas.width / 2;
-            const centerY = canvas.height / 2;
-            const radius = Math.min(canvas.width, canvas.height) * 0.25;
+        // draw blobs
+        for (let b of blobs){
+          b.x += b.vx; b.y += b.vy;
+          if (b.x < -b.r) b.x = window.innerWidth + b.r;
+          if (b.x > window.innerWidth + b.r) b.x = -b.r;
+          if (b.y < -b.r) b.y = window.innerHeight + b.r;
+          if (b.y > window.innerHeight + b.r) b.y = -b.r;
 
-            particles.forEach(particle => {
-                const angle = Math.random() * Math.PI * 2;
-                const r = Math.sqrt(Math.random()) * radius;
-                particle.baseX = centerX + Math.cos(angle) * r;
-                particle.baseY = centerY + Math.sin(angle) * r;
-            });
+          // soft radial
+          const rg = ctx.createRadialGradient(b.x, b.y, b.r*0.1, b.x, b.y, b.r);
+          rg.addColorStop(0, b.c);
+          rg.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.fillStyle = rg;
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+          ctx.fill();
+          ctx.globalCompositeOperation = 'source-over';
         }
+      };
+    })()
+  }
+];
 
-        // existing interactions
-        canvas.addEventListener('mousemove', (e) => {
-            mouseX = e.clientX;
-            mouseY = e.clientY;
-        });
+// current preset index
+let presetIndex = 0; // default black (first)
+function drawBackground(){
+  // call current preset draw
+  if (presets[presetIndex] && typeof presets[presetIndex].draw === 'function') {
+    presets[presetIndex].draw();
+  } else {
+    ctx.fillStyle = '#000'; ctx.fillRect(0,0,window.innerWidth, window.innerHeight);
+  }
+}
 
-        canvas.addEventListener('mouseleave', () => {
-            mouseX = -1000;
-            mouseY = -1000;
-        });
+/* --------- Build background menu UI --------- */
+const bgMenu = document.getElementById('bgMenu');
+function buildMenu() {
+  bgMenu.innerHTML = '';
+  presets.forEach((p, idx) => {
+    const opt = document.createElement('div');
+    opt.className = 'bg-option';
+    opt.tabIndex = 0;
+    opt.setAttribute('role','button');
+    opt.setAttribute('aria-pressed', idx===presetIndex ? 'true' : 'false');
 
-        canvas.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            mouseX = e.touches[0].clientX;
-            mouseY = e.touches[0].clientY;
-        }, { passive: false });
+    const dot = document.createElement('div');
+    dot.className = 'dot';
+    // try to use literal color if provided, else create gradient sample
+    if (typeof p.dot === 'string' && p.dot.startsWith('linear')) {
+      // fallback color
+      dot.style.background = '#0a0a0a';
+    } else {
+      dot.style.background = p.dot || '#111';
+    }
+    dot.style.boxShadow = 'inset 0 -8px 16px rgba(0,0,0,0.25)';
+    opt.appendChild(dot);
 
-        canvas.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            mouseX = e.touches[0].clientX;
-            mouseY = e.touches[0].clientY;
-        }, { passive: false });
+    const label = document.createElement('div');
+    label.className = 'label';
+    label.textContent = p.label;
+    opt.appendChild(label);
 
-        canvas.addEventListener('touchend', () => {
-            mouseX = -1000;
-            mouseY = -1000;
-        });
+    opt.addEventListener('click', () => {
+      presetIndex = idx;
+      // close menu
+      bgMenu.classList.remove('open');
+      bgMenu.setAttribute('aria-hidden','true');
+      // small fade transition not necessary because drawBackground handles
+    });
 
-        document.getElementById('closeBtn').addEventListener('click', () => {
-            if (isCircleMode) disperseParticles(); else formCircle();
-        });
+    opt.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault(); opt.click();
+      }
+    });
 
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
-        animate();
+    bgMenu.appendChild(opt);
+  });
+}
+buildMenu();
 
-        // === NEW: triple-tap center => show overlay & blur; button opens x.com ===
-        const overlay = document.getElementById('overlay');
-        const spinner = document.getElementById('spinner');
-        const loadingText = document.getElementById('loadingText');
-        const membersBtn = document.getElementById('membersBtn');
-        const blurTarget = document.querySelector('.blur-target');
+/* ---------- flower menu toggle ---------- */
+const flowerBtn = document.getElementById('flowerBtn');
+flowerBtn.addEventListener('click', (e) => {
+  const open = bgMenu.classList.toggle('open');
+  bgMenu.setAttribute('aria-hidden', !open);
+});
 
-        // triple-tap variables
-        let tapTimes = [];
-        const TAP_MAX_INTERVAL = 600; // ms allowed between taps
-        const CENTER_DETECT_RADIUS = 120; // px - how close to center counts as center tap
+/* click outside to close */
+document.addEventListener('click', (e) => {
+  if (!bgMenu.contains(e.target) && e.target !== flowerBtn) {
+    bgMenu.classList.remove('open');
+    bgMenu.setAttribute('aria-hidden','true');
+  }
+});
 
-        function isCenterTap(clientX, clientY) {
-            const rect = canvas.getBoundingClientRect();
-            const cx = rect.left + rect.width / 2;
-            const cy = rect.top + rect.height / 2;
-            const dx = clientX - cx;
-            const dy = clientY - cy;
-            const dist = Math.sqrt(dx*dx + dy*dy);
-            return dist <= CENTER_DETECT_RADIUS;
-        }
+/* accessibility: close menu on ESC */
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    bgMenu.classList.remove('open');
+    bgMenu.setAttribute('aria-hidden','true');
+  }
+});
 
-        function registerTap(clientX, clientY) {
-            const now = Date.now();
+/* ---------- initial draw of background to ensure black default ---------- */
+drawBackground();
 
-            // only consider taps near center
-            if (!isCenterTap(clientX, clientY)) {
-                // reset if tapping elsewhere
-                tapTimes = [];
-                return;
-            }
+/* ---------- ensure CENTER_RADIUS updates on resize ---------- */
+window.addEventListener('resize', () => {
+  // nothing else — isCenterPoint uses live rect
+});
 
-            // push this tap; remove old taps beyond TAP_MAX_INTERVAL
-            tapTimes.push(now);
-            // keep only recent taps within TAP_MAX_INTERVAL each
-            tapTimes = tapTimes.filter(t => now - t <= TAP_MAX_INTERVAL);
-
-            if (tapTimes.length >= 3) {
-                // got 3 quick taps
-                tapTimes = []; // reset
-                triggerLoadingOverlay();
-            }
-        }
-
-        // mouse click
-        canvas.addEventListener('click', (e) => {
-            registerTap(e.clientX, e.clientY);
-        });
-
-        // touch (tap)
-        canvas.addEventListener('touchend', (e) => {
-            // touchend touches list can be empty; use changedTouches
-            const touch = e.changedTouches && e.changedTouches[0];
-            if (touch) registerTap(touch.clientX, touch.clientY);
-        });
-
-        function triggerLoadingOverlay() {
-            // show overlay, blur the background
-            overlay.classList.remove('hidden');
-            overlay.setAttribute('aria-hidden', 'false');
-            blurTarget.classList.add('blur');
-
-            // show spinner, hide members button initially
-            spinner.classList.remove('hidden');
-            loadingText.textContent = 'Loading…';
-            membersBtn.classList.add('hidden');
-
-            // random load duration between 2 and 4 seconds
-            const loadDuration = 2000 + Math.floor(Math.random() * 2001);
-
-            // after loadDuration, show MEMBERS button
-            setTimeout(() => {
-                spinner.classList.add('hidden');
-                loadingText.textContent = '';
-                membersBtn.classList.remove('hidden');
-                // make overlay remain until user clicks MEMBERS; keep blur
-            }, loadDuration);
-        }
-
-        // clicking MEMBERS opens x.com in new tab
-        membersBtn.addEventListener('click', () => {
-            // remove overlay and blur when opening
-            overlay.classList.add('hidden');
-            overlay.setAttribute('aria-hidden', 'true');
-            blurTarget.classList.remove('blur');
-
-            // open x.com in new tab/window
-            window.open('https://x.com', '_blank', 'noopener,noreferrer');
-        });
-
-        // optional: allow clicking outside overlay-inner to dismiss (but we keep blur disabled)
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) {
-                // do nothing — keep overlay until MEMBERS pressed to avoid accidental close
-                // If you prefer dismiss-on-outside-click, uncomment these lines:
-                // overlay.classList.add('hidden');
-                // blurTarget.classList.remove('blur');
-            }
-        });
-
-        // Accessibility: allow keyboard action for members button if overlay has focus
-        document.addEventListener('keydown', (e) => {
-            if (!overlay.classList.contains('hidden')) {
-                if (e.key === 'Escape') {
-                    // close overlay and clear
-                    overlay.classList.add('hidden');
-                    blurTarget.classList.remove('blur');
-                }
-            }
-        });
-    </script>
+/* ---------- end of script ---------- */
+</script>
 </body>
 </html>
