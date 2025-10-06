@@ -3,84 +3,157 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Voice Animation Example</title>
+<title>Pinkish Voice Animation</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap');
+
   body {
+    margin: 0;
+    height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
-    background: #121212;
-    margin: 0;
+    background: #1a0a1f; /* dark purple-black */
+    font-family: 'Poppins', sans-serif;
   }
 
   .voice-icon {
-    width: 100px;
-    height: 100px;
-    background: linear-gradient(135deg, #00c6ff, #0072ff);
+    width: 110px;
+    height: 110px;
+    background: radial-gradient(circle at center, #ff6fa4, #c72e88);
     border-radius: 50%;
-    position: relative;
-    box-shadow: 0 0 15px #0072ff;
+    box-shadow: 0 0 12px #ff94b9, 0 0 30px #c72e88;
     cursor: pointer;
+    position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
-    transition: box-shadow 0.3s ease;
+    transition: box-shadow 0.4s ease, transform 0.4s ease;
+    user-select: none; /* prevent text select */
   }
 
-  .voice-icon:hover, .voice-icon.active {
-    box-shadow: 0 0 40px #00c6ff, 0 0 80px #00c6ff;
-    animation: pulse 1.2s infinite;
-  }
-
+  /* Mic shape */
   .mic-body {
-    width: 40px;
-    height: 60px;
-    background: white;
-    border-radius: 20px 20px 10px 10px;
+    width: 48px;
+    height: 72px;
+    background: #ffe1f0;
+    border-radius: 24px 24px 16px 16px;
     position: relative;
+    box-shadow: inset 0 4px 8px rgba(255, 153, 195, 0.8);
+    transition: background 0.4s ease;
   }
 
+  /* Mic top rounded */
   .mic-head {
-    width: 40px;
-    height: 20px;
-    background: #00aaff;
-    border-radius: 20px 20px 0 0;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 48px;
+    height: 28px;
+    background: linear-gradient(135deg, #ff92b7, #c91a7e);
+    border-radius: 24px 24px 0 0;
+    box-shadow:
+      0 0 5px #ff82a8,
+      inset 0 -4px 6px #ff5a8e;
+    transition: background 0.4s ease;
   }
 
-  @keyframes pulse {
-    0% {
-      transform: scale(1);
-      box-shadow: 0 0 40px #00c6ff, 0 0 80px #00c6ff;
+  /* Mic detail lines */
+  .mic-lines {
+    position: absolute;
+    top: 35px;
+    left: 12px;
+    width: 24px;
+    height: 3px;
+    background: #d44f84;
+    border-radius: 2px;
+    box-shadow:
+      0 8px 0 #d44f84,
+      0 16px 0 #d44f84;
+  }
+
+  /* Hover and active animation */
+  .voice-icon:hover, .voice-icon.active {
+    animation: pulsePink 1.3s ease-in-out infinite;
+    box-shadow:
+      0 0 20px #ff9ac8,
+      0 0 45px #d6418d,
+      0 0 70px #e1458f;
+    transform: scale(1.12);
+  }
+
+  /* Smooth pulse animation for pink glow */
+  @keyframes pulsePink {
+    0%, 100% {
+      box-shadow:
+        0 0 20px #ff9ac8,
+        0 0 45px #d6418d,
+        0 0 70px #e1458f;
+      transform: scale(1.12);
     }
     50% {
-      transform: scale(1.1);
-      box-shadow: 0 0 60px #00c6ff, 0 0 120px #00c6ff;
+      box-shadow:
+        0 0 32px #ffaccf,
+        0 0 58px #db4a93,
+        0 0 90px #e25097;
+      transform: scale(1.18);
     }
-    100% {
-      transform: scale(1);
-      box-shadow: 0 0 40px #00c6ff, 0 0 80px #00c6ff;
+  }
+
+  /* Responsive scaling for smaller devices */
+  @media (max-width: 480px) {
+    .voice-icon {
+      width: 80px;
+      height: 80px;
+    }
+    .mic-body {
+      width: 36px;
+      height: 54px;
+      border-radius: 18px 18px 12px 12px;
+    }
+    .mic-head {
+      width: 36px;
+      height: 20px;
+      border-radius: 18px 18px 0 0;
+    }
+    .mic-lines {
+      top: 27px;
+      left: 9px;
+      width: 18px;
+      height: 2.5px;
+      box-shadow:
+        0 6px 0 #d44f84,
+        0 12px 0 #d44f84;
     }
   }
 </style>
 </head>
 <body>
 
-<div class="voice-icon" id="voiceIcon">
+<div class="voice-icon" id="voiceIcon" aria-label="Voice Input Button" role="button" tabindex="0">
   <div class="mic-body">
     <div class="mic-head"></div>
+    <div class="mic-lines"></div>
   </div>
 </div>
 
 <script>
   const voiceIcon = document.getElementById('voiceIcon');
 
-  // Toggle animation on touch/click
+  // Toggle animation on click or touch
   voiceIcon.addEventListener('click', () => {
     voiceIcon.classList.toggle('active');
   });
 
-  // Optional: Remove animation when clicking elsewhere
+  // To allow keyboard accessibility: toggle on Enter or Space keys
+  voiceIcon.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      voiceIcon.classList.toggle('active');
+    }
+  });
+
+  // Remove animation if clicked outside (for touch devices)
   document.body.addEventListener('click', (e) => {
     if (!voiceIcon.contains(e.target)) {
       voiceIcon.classList.remove('active');
